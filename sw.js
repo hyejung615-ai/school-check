@@ -1,4 +1,4 @@
-const CACHE = 'kid-v5';
+const CACHE = 'kid-v6';
 const ASSETS = ['./', 'index.html', 'style.css', 'app.js', 'manifest.webmanifest', 'icon.svg', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', (e) => { e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting())); });
@@ -22,7 +22,7 @@ self.addEventListener('periodicsync', (e) => {
     const prevTxt = prev ? await prev.text() : '';
     await c.put('__last', new Response(txt));
     if (prevTxt && prevTxt !== txt) {
-      await self.registration.showNotification('오늘 학교: 새 소식이 도착했어요', { body: '학교 알림장이 갱신됐어요. 눌러서 확인하세요.', icon: 'icon-192.png', tag: 'oc-new' });
+      await self.registration.showNotification('윤서의 오늘체크: 새 소식이 도착했어요', { body: '학교 알림장이 갱신됐어요. 눌러서 확인하세요.', icon: 'icon-192.png', tag: 'oc-new' });
     }
   })());
 });

@@ -1,6 +1,6 @@
 {
-  "name": "오늘 학교 - 오늘 챙길 것",
-  "short_name": "오늘 학교",
+  "name": "윤서의 오늘체크 - 오늘 챙길 것",
+  "short_name": "윤서의 오늘체크",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
