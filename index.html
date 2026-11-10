@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="robots" content="noindex" />
+<meta name="theme-color" content="#2f5d8a" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="오늘 학교" />
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="icon" href="icon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="icon-192.png" />
+<title>오늘 학교</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div id="lock" class="lock">
+  <form id="lockForm" class="lock-card">
+    <div class="logo">✓</div>
+    <h1>오늘 학교</h1>
+    <p>오늘 학교에서 챙길 것</p>
+    <input id="pass" type="password" placeholder="패스코드" autocomplete="current-password" />
+    <button type="submit">열기</button>
+    <div id="lockErr" class="err"></div>
+  </form>
+</div>
+
+<div id="app" class="hidden">
+  <header class="top">
+    <div>
+      <h1>오늘 학교</h1>
+      <div id="meta" class="meta"></div>
+    </div>
+    <div class="top-actions">
+      <button id="notifBtn" class="ghost" title="알림 켜기">🔔</button>
+      <button id="syncBtn" class="ghost" title="최신 목록 불러오기">⟳</button>
+    </div>
+  </header>
+
+  <section id="summary" class="summary"></section>
+
+  <nav class="tabs" id="tabs">
+    <button data-tab="today" class="on">오늘·내일</button>
+    <button data-tab="school">전체 보기</button>
+  </nav>
+
+  <main id="view"></main>
+
+  <button id="fab" class="fab" title="추가">＋</button>
+</div>
+
+<dialog id="dlg">
+  <form method="dialog" id="dlgForm">
+    <h2>할 일 추가</h2>
+    <div class="seg" id="catSeg">
+      <label><input type="radio" name="cat" value="school" checked />학교·학원</label>
+    </div>
+    <label>내용 <small>(카톡·학원 공지를 통째로 붙여넣으면 줄마다 할 일로 나눠요)</small>
+      <textarea name="text" rows="6" required placeholder="예) 내일 리코더 챙기기&#10;11/5 학원비 납부"></textarea>
+    </label>
+    <label>출처
+      <select name="src">
+        <option value="manual">직접 입력</option>
+        <option value="kakao">카카오톡</option>
+        <option value="hakwon">학원친구</option>
+        <option value="isosik">아이소식</option>
+        <option value="ealimi">e알리미</option>
+        <option value="classdojo">ClassDojo</option>
+      </select>
+    </label>
+    <label>마감일 <small>(비우면 글 속 날짜를 자동 인식)</small><input name="due" type="date" /></label>
+    <div class="dlg-actions">
+      <button value="cancel" formnovalidate class="ghost">취소</button>
+      <button value="save" class="primary">추가</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="det">
+  <div class="det-wrap">
+    <div class="det-head"><span id="detTags"></span><button class="ghost det-x" id="detClose">✕</button></div>
+    <h2 id="detTitle"></h2>
+    <div id="detNote" class="det-note"></div>
+    <pre id="detBody" class="det-body"></pre>
+    <div id="detLinks" class="det-links"></div>
+    <div class="dlg-actions"><button id="detToggle" class="primary"></button></div>
+  </div>
+</dialog>
+<div id="toast" class="toast"></div>
+<script src="app.js"></script>
+</body>
+</html>
