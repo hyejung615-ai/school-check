@@ -39,7 +39,7 @@
   // ---------- model ----------
   const allItems = () => [...data.items, ...get(LS.manual, [])].filter((i) => !get(LS.hidden, []).includes(i.id));
   const isDone = (id) => !!get(LS.checks, {})[id];
-  function toggle(id) { const c = get(LS.checks, {}); if (c[id]) delete c[id]; else c[id] = new Date().toISOString(); set(LS.checks, c); render(); }
+  function toggle(id) { const c = get(LS.checks, {}); if (c[id]) delete c[id]; else c[id] = new Date().toISOString(); set(LS.checks, c); recordChange(sk(id), !!c[id]); render(); }
 
   function sortItems(a, b) {
     const da = diff(a.due), db = diff(b.due);
@@ -59,7 +59,7 @@
         <div class="sub">
           ${lbl ? `<span class="dd ${cls}">${lbl}</span>` : ''}
           ${newIds.has(i.id) ? '<span class="dd today">NEW</span>' : ''}
-          <span class="tag">${esc(SRCNAME[i.src] || i.src)}</span>
+          <span class="tag">${esc(SRCNAME[i.src] || i.src)}</span>${whoTag(i.id)}
           ${i.kind === 'info' ? '<span class="tag">일정</span>' : ''}
           ${i.note ? `<span>${esc(i.note)}</span>` : ''}
           ${i.detail || i.link ? '<span class="more">자세히 ›</span>' : ''}
@@ -76,10 +76,11 @@
   }
 
   function renderSummary() {
+    renderWho();
     if (data.links && data.links.length) {
       const dk = ymd(today0()); const doneMap = get('kid-linkdone', {}); const ds = doneMap[dk] || [];
       const tiles = data.links.map((l) => `<a class="qtile" href="${esc(l.url)}" target="_blank" rel="noopener" style="--tc:${esc(l.color || '#2f5d8a')}"><span class="qic${(l.icon || '').length > 2 ? ' txt' : ''}">${esc(l.icon || '🔗')}</span><span class="qname">${esc(l.short || l.title)}</span></a>`).join('');
-      const rows = data.links.filter((l) => !l.nocheck).map((l) => `<button class="qrow ${ds.includes(l.id) ? 'done' : ''}" data-qcheck="${esc(l.id)}"><span class="qbox">${ds.includes(l.id) ? '✓' : ''}</span><span class="qtxt">${esc(l.title)}</span></button>`).join('');
+      const rows = data.links.filter((l) => !l.nocheck).map((l) => `<button class="qrow ${ds.includes(l.id) ? 'done' : ''}" data-qcheck="${esc(l.id)}"><span class="qbox">${ds.includes(l.id) ? '✓' : ''}</span><span class="qtxt">${esc(l.title)}</span>${linkWho(dk, l.id) ? '<span class="qwho">✓ ' + esc(linkWho(dk, l.id)) + '</span>' : ''}</button>`).join('');
       $('#summary').innerHTML = '<div class="qtitle">바로가기</div><div class="qtiles">' + tiles + '</div><div class="qtitle">오늘 했어요? 눌러서 체크</div><div class="qchecks">' + rows + '</div>';
       return;
     }
@@ -95,7 +96,7 @@
     const b = e.target.closest('[data-qcheck]'); if (!b) return;
     const id = b.dataset.qcheck, dk = ymd(today0()), doneMap = get('kid-linkdone', {});
     const ds = new Set(doneMap[dk] || []); if (ds.has(id)) ds.delete(id); else ds.add(id);
-    doneMap[dk] = [...ds]; set('kid-linkdone', doneMap); render();
+    doneMap[dk] = [...ds]; set('kid-linkdone', doneMap); recordChange('L_' + dk.replace(/-/g, '') + '_' + sk(id), ds.has(id)); render();
   });
 
   function render() {
@@ -195,7 +196,7 @@
     const i = allItems().find((x) => x.id === id); if (!i) return;
     detId = id;
     const [cls, lbl] = ddLabel(i.due) || [];
-    $('#detTags').innerHTML = (lbl ? `<span class="dd ${cls}">${lbl}</span>` : '') + `<span class="tag">${CAT[i.cat]}</span><span class="tag">${esc(SRCNAME[i.src] || i.src)}</span>` + (i.kind === 'info' ? '<span class="tag">일정</span>' : '');
+    $('#detTags').innerHTML = (lbl ? `<span class="dd ${cls}">${lbl}</span>` : '') + `<span class="tag">${CAT[i.cat]}</span><span class="tag">${esc(SRCNAME[i.src] || i.src)}</span>${whoTag(i.id)}` + (i.kind === 'info' ? '<span class="tag">일정</span>' : '');
     $('#detTitle').textContent = i.title;
     $('#detNote').textContent = i.note || '';
     $('#detBody').textContent = i.detail || '';
@@ -232,6 +233,76 @@
     history.replaceState(null, '', location.pathname + location.search);
     if (text.trim()) openAddWith(text.trim(), m[2]);
   }
+
+  // ---------- 가족 공유 동기화 (Firebase Realtime Database REST) ----------
+  let syncOk = null;
+  function sk(s) { return String(s).replace(/[^A-Za-z0-9_-]/g, '_'); }
+  function syncCfg() { return data && data.sync && data.sync.url ? data.sync : null; }
+  function metaMap() { return get('kid-meta', {}); }
+  function hhmm(t) { const d = new Date(t); return (d.getMonth() + 1) + '/' + d.getDate() + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); }
+  function whoTag(id) {
+    if (!isDone(id)) return '';
+    const m = metaMap()[sk(id)]; if (!m || !m.d) return '';
+    return '<span class="tag who">✓ ' + esc(m.by || '체크') + ' ' + hhmm(m.t) + '</span>';
+  }
+  function linkWho(dk, id) { const m = metaMap()['L_' + dk.replace(/-/g, '') + '_' + sk(id)]; return m && m.d ? (m.by ? m.by + ' ' : '') + hhmm(m.t) : ''; }
+  function setSyncState(ok) { if (syncOk !== ok) { syncOk = ok; renderWho(); } }
+  function recordChange(key, done) {
+    const m = metaMap(); m[key] = { t: Date.now(), d: !!done, by: get('kid-who', '') || '' }; set('kid-meta', m);
+    pushChange(key, m[key]);
+  }
+  async function pushChange(key, v) {
+    const c = syncCfg(); if (!c) return;
+    try { const r = await fetch(c.url + '/kid/' + c.key + '/' + key + '.json', { method: 'PUT', body: JSON.stringify(v) }); setSyncState(r.ok); } catch { setSyncState(false); }
+  }
+  function applyMeta(k, v, checks, ld) {
+    if (k.startsWith('L_')) {
+      const parts = k.split('_'); const d8 = parts[1]; const id = parts.slice(2).join('_');
+      const dk = d8.slice(0, 4) + '-' + d8.slice(4, 6) + '-' + d8.slice(6, 8);
+      const s = new Set(ld[dk] || []); if (v.d) s.add(id); else s.delete(id); ld[dk] = [...s];
+    } else if (v.d) checks[k] = new Date(v.t).toISOString(); else delete checks[k];
+  }
+  function migrateMeta() {
+    const m = metaMap(); const checks = get('kid-checks', {}); const ld = get('kid-linkdone', {}); let ch = false;
+    for (const [id, iso] of Object.entries(checks)) { const k = sk(id); if (!m[k]) { m[k] = { t: Date.parse(iso) || Date.now(), d: true, by: '' }; ch = true; } }
+    for (const [dk, ids] of Object.entries(ld)) for (const id of ids) { const k = 'L_' + dk.replace(/-/g, '') + '_' + sk(id); if (!m[k]) { m[k] = { t: Date.now(), d: true, by: '' }; ch = true; } }
+    if (ch) set('kid-meta', m);
+  }
+  async function pullRemote() {
+    const c = syncCfg(); if (!c) return;
+    try {
+      const resp = await fetch(c.url + '/kid/' + c.key + '.json', { cache: 'no-store' });
+      if (!resp.ok) throw new Error('http ' + resp.status);
+      const remote = (await resp.json()) || {};
+      const m = metaMap(); const checks = get('kid-checks', {}); const ld = get('kid-linkdone', {});
+      let changed = false;
+      for (const [k, v] of Object.entries(remote)) { const loc = m[k]; if (!loc || v.t > loc.t) { m[k] = v; applyMeta(k, v, checks, ld); changed = true; } }
+      for (const [k, v] of Object.entries(m)) if (!remote[k] || remote[k].t < v.t) pushChange(k, v);
+      if (changed) { set('kid-meta', m); set('kid-checks', checks); set('kid-linkdone', ld); render(); }
+      setSyncState(true);
+    } catch { setSyncState(false); }
+  }
+  function renderWho() {
+    let bar = document.getElementById('whoBar');
+    if (!bar) {
+      const s = document.getElementById('summary'); if (!s) return;
+      bar = document.createElement('div'); bar.id = 'whoBar'; bar.className = 'whobar'; s.parentNode.insertBefore(bar, s);
+      bar.addEventListener('click', (e) => {
+        const b = e.target.closest('[data-who]'); if (b) { set('kid-who', b.dataset.who); renderWho(); return; }
+        if (e.target.closest('[data-change]')) { localStorage.removeItem('kid-who'); renderWho(); }
+      });
+    }
+    const who = get('kid-who', '');
+    if (!who) bar.innerHTML = '<span class="wq">누가 보고 있나요?</span>' + ['엄마', '아빠', '정임'].map((n) => '<button data-who="' + n + '">' + n + '</button>').join('');
+    else bar.innerHTML = '<span class="sdot' + (syncOk === false ? ' off' : '') + '"></span><span class="wt">' + esc(who) + ' · ' + (syncOk === false ? '연동 안 됨(이 폰에만 저장)' : '가족과 같이 보는 중') + '</span><button class="ghost" data-change="1">바꾸기</button>';
+  }
+  let __tick = 0, __first = false;
+  setInterval(() => {
+    if (document.hidden || !syncCfg()) return;
+    if (!__first) { __first = true; migrateMeta(); pullRemote(); return; }
+    if (++__tick % 4 === 0) pullRemote();
+  }, 5000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && syncCfg()) pullRemote(); });
 
   function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('on'); setTimeout(() => t.classList.remove('on'), 2000); }
 

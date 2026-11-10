@@ -119,3 +119,13 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 .qrow.done .qtxt{text-decoration:line-through;color:var(--muted)}
 
 .qic.txt{font-size:14px}
+
+/* 가족 공유 표시 */
+.whobar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:2px 0 8px;font-size:13px;color:var(--muted)}
+.whobar .wq{font-weight:700;color:var(--ink)}
+.whobar button{padding:6px 14px;font-size:14px;border-radius:999px}
+.whobar button.ghost{padding:4px 10px;font-size:12px;margin-left:auto}
+.sdot{width:9px;height:9px;border-radius:50%;background:#2f9e5b;flex:0 0 9px}
+.sdot.off{background:var(--mid)}
+.tag.who{background:#e7f6ec;border-color:#b9e2c7;color:#1d6b3a;font-weight:700}
+.qwho{margin-left:auto;font-size:12px;color:#1d6b3a;font-weight:700;white-space:nowrap}
