@@ -76,6 +76,11 @@
   }
 
   function renderSummary() {
+    if (data.links && data.links.length) {
+      const dk = ymd(today0()); const doneMap = get('kid-linkdone', {}); const ds = doneMap[dk] || [];
+      $('#summary').innerHTML = '<div class="qtitle">오늘 해야 할 일 · 눌러서 열기</div>' + data.links.map((l) => `<div class="qlink ${ds.includes(l.id) ? 'done' : ''}"><button class="qbox" data-qcheck="${esc(l.id)}" aria-label="했어요">${ds.includes(l.id) ? '✓' : ''}</button><a href="${esc(l.url)}" target="_blank" rel="noopener"><b>${esc(l.title)}</b><span>${esc(l.sub || '')}</span></a></div>`).join('');
+      return;
+    }
     const items = allItems();
     $('#summary').innerHTML = Object.entries(CAT).map(([k, v]) => {
       const left = items.filter((i) => i.cat === k && i.kind !== 'info' && !isDone(i.id));
@@ -83,6 +88,13 @@
       return `<div class="sum ${k}" data-go="${k}"><b>${left.length}</b><span>${v} 남은 일${urgent ? ` · 급한 일 ${urgent}` : ''}</span></div>`;
     }).join('');
   }
+
+  $('#summary').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-qcheck]'); if (!b) return;
+    const id = b.dataset.qcheck, dk = ymd(today0()), doneMap = get('kid-linkdone', {});
+    const ds = new Set(doneMap[dk] || []); if (ds.has(id)) ds.delete(id); else ds.add(id);
+    doneMap[dk] = [...ds]; set('kid-linkdone', doneMap); render();
+  });
 
   function render() {
     renderSummary();
