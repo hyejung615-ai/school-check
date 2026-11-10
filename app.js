@@ -78,7 +78,9 @@
   function renderSummary() {
     if (data.links && data.links.length) {
       const dk = ymd(today0()); const doneMap = get('kid-linkdone', {}); const ds = doneMap[dk] || [];
-      $('#summary').innerHTML = '<div class="qtitle">오늘 해야 할 일 · 눌러서 열기</div>' + data.links.map((l) => `<div class="qlink ${ds.includes(l.id) ? 'done' : ''}"><button class="qbox" data-qcheck="${esc(l.id)}" aria-label="했어요">${ds.includes(l.id) ? '✓' : ''}</button><a href="${esc(l.url)}" target="_blank" rel="noopener"><b>${esc(l.title)}</b><span>${esc(l.sub || '')}</span></a></div>`).join('');
+      const tiles = data.links.map((l) => `<a class="qtile" href="${esc(l.url)}" target="_blank" rel="noopener" style="--tc:${esc(l.color || '#2f5d8a')}"><span class="qic${(l.icon || '').length > 2 ? ' txt' : ''}">${esc(l.icon || '🔗')}</span><span class="qname">${esc(l.short || l.title)}</span></a>`).join('');
+      const rows = data.links.filter((l) => !l.nocheck).map((l) => `<button class="qrow ${ds.includes(l.id) ? 'done' : ''}" data-qcheck="${esc(l.id)}"><span class="qbox">${ds.includes(l.id) ? '✓' : ''}</span><span class="qtxt">${esc(l.title)}</span></button>`).join('');
+      $('#summary').innerHTML = '<div class="qtitle">바로가기</div><div class="qtiles">' + tiles + '</div><div class="qtitle">오늘 했어요? 눌러서 체크</div><div class="qchecks">' + rows + '</div>';
       return;
     }
     const items = allItems();
