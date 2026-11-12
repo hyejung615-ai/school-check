@@ -129,3 +129,15 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 .sdot.off{background:var(--mid)}
 .tag.who{background:#e7f6ec;border-color:#b9e2c7;color:#1d6b3a;font-weight:700}
 .qwho{margin-left:auto;font-size:12px;color:#1d6b3a;font-weight:700;white-space:nowrap}
+
+/* 오늘의 단어 */
+.vcard{display:flex;flex-direction:column;gap:8px;margin-bottom:6px}
+.vw{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-left:5px solid #7c4dff;border-radius:14px;padding:10px 12px}
+.vsay{flex:0 0 40px;height:40px;border-radius:50%;padding:0;font-size:18px;background:#7c4dff;color:#fff}
+.vtxt{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;min-width:0}
+.vtxt b{font-size:22px;letter-spacing:-.3px}
+.vko{font-size:15px;font-weight:700;color:#7c4dff}
+.vmean{flex-basis:100%;font-size:14px;color:var(--muted)}
+.vprev{margin:4px 0 8px;font-size:13px;color:var(--muted)}
+.vprev summary{cursor:pointer;padding:4px 2px}
+.vprev .vw{margin-top:6px;opacity:.85}
