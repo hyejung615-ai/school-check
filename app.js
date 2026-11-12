@@ -82,6 +82,7 @@
 
   function groupHTML(title, items, showCount = true) {
     if (!items.length) return '';
+    if (title === '완료') return '<details class="group donegrp"><summary>✓ 완료 ' + items.length + '개 (눌러서 펼치기)</summary>' + items.map(itemHTML).join('') + '</details>';
     const left = items.filter((i) => !isDone(i.id) && i.kind !== 'info').length;
     return `<div class="group"><h3><span>${title}</span>${showCount ? `<span>${left}개 남음</span>` : ''}</h3>${items.map(itemHTML).join('')}</div>`;
   }
@@ -91,7 +92,9 @@
     if (data.links && data.links.length) {
       const dk = ymd(today0()); const doneMap = get('kid-linkdone', {}); const ds = doneMap[dk] || [];
       const tiles = data.links.filter((l) => !l.notile).map((l) => `<a class="qtile" href="${esc(l.url)}" target="_blank" rel="noopener" style="--tc:${esc(l.color || '#2f5d8a')}"><span class="qic${(l.icon || '').length > 2 ? ' txt' : ''}">${esc(l.icon || '🔗')}</span><span class="qname">${esc(l.short || l.title)}</span></a>`).join('');
-      const rows = data.links.filter((l) => !l.nocheck).map((l) => `<button class="qrow ${ds.includes(l.id) ? 'done' : ''}" data-qcheck="${esc(l.id)}"><span class="qbox">${ds.includes(l.id) ? '✓' : ''}</span><span class="qtxt">${esc(l.title)}</span>${linkWho(dk, l.id) ? '<span class="qwho">✓ ' + esc(linkWho(dk, l.id)) + '</span>' : ''}</button>`).join('');
+      const rowF = (l) => `<button class="qrow ${ds.includes(l.id) ? 'done' : ''}" data-qcheck="${esc(l.id)}"><span class="qbox">${ds.includes(l.id) ? '✓' : ''}</span><span class="qtxt">${esc(l.title)}</span>${linkWho(dk, l.id) ? '<span class="qwho">✓ ' + esc(linkWho(dk, l.id)) + '</span>' : ''}</button>`;
+      const cl = data.links.filter((l) => !l.nocheck), isD = (l) => ds.includes(l.id);
+      const rows = cl.filter((l) => !isD(l)).map(rowF).join('') + (cl.some(isD) ? '<details class="donegrp"><summary>✓ 완료 ' + cl.filter(isD).length + '개 (눌러서 펼치기)</summary>' + cl.filter(isD).map(rowF).join('') + '</details>' : '');
       let vh = ''; const V = data.vocab;
       if (V && V.words && V.words.length) {
         const n = Math.floor((today0() - new Date(V.start + 'T00:00:00')) / 86400000), di = ((n % 7) + 7) % 7, pick = (k) => V.words.slice(k * 3, k * 3 + 3);
