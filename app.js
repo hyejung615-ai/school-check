@@ -36,6 +36,17 @@
     return ['', `${md}(${w}) D-${d}`];
   }
 
+  // ---------- 준비물·제출물·시험: 오늘 챙겨서 다음 등교일에 가져가는 항목 ----------
+  const WD = '일월화수목금토';
+  function nextSchoolOffset() { const w = new Date().getDay(); return w === 5 ? 3 : w === 6 ? 2 : 1; }
+  function isPrep(i) { return i.kind === 'task' && (i.prep === true || (i.src === 'band' && /일과표/.test(i.note || ''))); }
+  function prepNow(i) { if (!isPrep(i)) return false; const d = diff(i.due); return d !== null && d > 0 && d <= nextSchoolOffset(); }
+  function ddLabelFor(i) {
+    if (prepNow(i)) { const d = diff(i.due); const w = WD[new Date(i.due + 'T00:00:00').getDay()]; return ['today', '오늘 챙기기 → ' + (d === 1 ? '내일' : w + '요일') + ' 가져가요']; }
+    return ddLabel(i.due);
+  }
+  function prepTitle() { const pd = nextSchoolOffset(); return pd === 1 ? '🎒 오늘 챙겨요 → 내일 가져가요' : '🎒 챙겨 두기 → ' + WD[(new Date().getDay() + pd) % 7] + '요일에 가져가요'; }
+
   // ---------- model ----------
   const allItems = () => [...data.items, ...get(LS.manual, [])].filter((i) => !get(LS.hidden, []).includes(i.id));
   const isDone = (id) => !!get(LS.checks, {})[id];
@@ -51,7 +62,7 @@
 
   function itemHTML(i) {
     const done = isDone(i.id);
-    const [cls, lbl] = ddLabel(i.due) || [];
+    const [cls, lbl] = ddLabelFor(i) || [];
     return `<div class="item ${i.cat} ${i.kind === 'info' ? 'info' : ''} ${done ? 'done' : ''} pri-${i.pri || 'mid'}" data-id="${esc(i.id)}">
       <button class="box" data-act="toggle" aria-label="완료">${done ? '✓' : ''}</button>
       <div class="body">
@@ -105,11 +116,13 @@
     const items = allItems().sort(sortItems);
     let html = '';
     if (tab === 'today') {
-      const near = items.filter((i) => { const d = diff(i.due); return d !== null && d <= 1; });
-      const week = items.filter((i) => { const d = diff(i.due); return d !== null && d >= 2 && d <= 7; });
+      const prepAll = items.filter(prepNow);
+      const near = items.filter((i) => { const d = diff(i.due); return d !== null && d <= 1 && !prepNow(i); });
+      const week = items.filter((i) => { const d = diff(i.due); return d !== null && d >= 2 && d <= 7 && !prepNow(i); });
+      html += groupHTML(prepTitle(), prepAll.filter((i) => !isDone(i.id)));
       for (const k of Object.keys(CAT)) html += groupHTML(CAT[k], near.filter((i) => i.cat === k && !isDone(i.id)));
       html += groupHTML('이번 주 다가오는 일', week.filter((i) => !isDone(i.id)));
-      html += groupHTML('완료', [...near, ...week].filter((i) => isDone(i.id)), false);
+      html += groupHTML('완료', [...prepAll, ...near, ...week].filter((i) => isDone(i.id)), false);
       if (!html) html = '<div class="empty">오늘·내일 할 일이 없어요 🎉</div>';
     } else if (tab === 'sources') {
       html = `<div class="group"><h3><span>연결 상태</span><span>${esc(fmtAsOf())}</span></h3>` +
@@ -195,7 +208,7 @@
   function openDetail(id) {
     const i = allItems().find((x) => x.id === id); if (!i) return;
     detId = id;
-    const [cls, lbl] = ddLabel(i.due) || [];
+    const [cls, lbl] = ddLabelFor(i) || [];
     $('#detTags').innerHTML = (lbl ? `<span class="dd ${cls}">${lbl}</span>` : '') + `<span class="tag">${CAT[i.cat]}</span><span class="tag">${esc(SRCNAME[i.src] || i.src)}</span>${whoTag(i.id)}` + (i.kind === 'info' ? '<span class="tag">일정</span>' : '');
     $('#detTitle').textContent = i.title;
     $('#detNote').textContent = i.note || '';
