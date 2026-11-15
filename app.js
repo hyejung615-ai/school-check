@@ -90,15 +90,15 @@
   function renderSummary() {
     renderWho();
     if (data.links && data.links.length) {
-      const dk = ymd(today0()); const doneMap = get('kid-linkdone', {}); const ds = doneMap[dk] || [];
+      const dk = ymd(today0()); const __wd = today0().getDay(); const doneMap = get('kid-linkdone', {}); const ds = doneMap[dk] || [];
       const tiles = data.links.filter((l) => !l.notile).map((l) => `<a class="qtile" href="${esc(l.url)}" target="_blank" rel="noopener" style="--tc:${esc(l.color || '#2f5d8a')}"><span class="qic${(l.icon || '').length > 2 ? ' txt' : ''}">${esc(l.icon || '🔗')}</span><span class="qname">${esc(l.short || l.title)}</span></a>`).join('');
       const rowF = (l) => `<button class="qrow ${ds.includes(l.id) ? 'done' : ''}" data-qcheck="${esc(l.id)}"><span class="qbox">${ds.includes(l.id) ? '✓' : ''}</span><span class="qtxt">${esc(l.title)}</span>${linkWho(dk, l.id) ? '<span class="qwho">✓ ' + esc(linkWho(dk, l.id)) + '</span>' : ''}</button>`;
-      const cl = data.links.filter((l) => !l.nocheck), isD = (l) => ds.includes(l.id);
+      const wd = today0().getDay(), cl = data.links.filter((l) => !l.nocheck && (!l.days || l.days.includes(wd))), isD = (l) => ds.includes(l.id);
       const rows = cl.filter((l) => !isD(l)).map(rowF).join('') + (cl.some(isD) ? '<details class="donegrp"><summary>✓ 완료 ' + cl.filter(isD).length + '개 (눌러서 펼치기)</summary>' + cl.filter(isD).map(rowF).join('') + '</details>' : '');
       let vh = ''; const V = data.vocab;
       if (V && V.words && V.words.length) {
-        const n = Math.floor((today0() - new Date(V.start + 'T00:00:00')) / 86400000), di = ((n % 7) + 7) % 7, pick = (k) => V.words.slice(k * 3, k * 3 + 3);
-        const wrow = (w) => `<div class="vw"><button class="vsay" data-say="${esc(w.en)}" aria-label="듣기">🔊</button><div class="vtxt"><b>${esc(w.en)}</b><span class="vko">${esc(w.ko)}</span><span class="vmean">${esc(w.mean)}</span></div></div>`;
+        const n = Math.floor((today0() - new Date(V.start + 'T00:00:00')) / 86400000), di = ((n % 7) + 7) % 7, pick = (k) => { const o = []; for (let q = 0; q < 3; q++) o.push(V.words[(k * 3 + q) % V.words.length]); return o; };
+        const wrow = (w) => `<div class="vw"><button class="vsay" data-say="${esc(w.en)}" aria-label="듣기">🔊</button><div class="vtxt"><b>${esc(w.en)}</b><span class="vipa">${esc(w.ipa || "")}</span><span class="vko">${esc(w.ko)}</span><span class="vmean">${esc(w.mean)}</span></div></div>`;
         vh = '<div class="qtitle">🔤 오늘의 단어 3개 · ' + (di + 1) + '/7일째 (영어 · 발음 · 뜻)</div><div class="vcard">' + pick(di).map(wrow).join('') + '</div>' + (di > 0 ? '<details class="vprev"><summary>어제 단어 다시 보기</summary>' + pick(di - 1).map(wrow).join('') + '</details>' : '');
       }
       $('#summary').innerHTML = '<div class="qtitle">바로가기</div><div class="qtiles">' + tiles + '</div>' + vh + '<div class="qtitle">오늘 했어요? 눌러서 체크</div><div class="qchecks">' + rows + '</div>';
