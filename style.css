@@ -149,3 +149,18 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 .donegrp[open]>summary{margin-bottom:8px}
 
 .vipa{font-size:14px;color:var(--muted);font-family:"Lucida Sans Unicode","DejaVu Sans",sans-serif}
+
+/* 오늘 날짜 배너 + 3열 타일 + 그룹 */
+.todaybar{display:flex;align-items:center;gap:14px;background:linear-gradient(135deg,#ff7a1a,#ff4d4d);color:#fff;text-decoration:none;border-radius:20px;padding:16px 18px;margin:4px 0 14px;box-shadow:0 6px 16px rgba(255,90,30,.35)}
+.todaybar .tb-cal{font-size:34px;line-height:1}
+.todaybar .tb-txt{display:flex;flex-direction:column;flex:1;min-width:0}
+.todaybar small{font-size:14px;opacity:.9;font-weight:600}
+.todaybar b{font-size:26px;letter-spacing:-.5px;line-height:1.15}
+.todaybar .tb-go{font-size:13px;font-weight:700;background:rgba(255,255,255,.25);padding:6px 10px;border-radius:999px;white-space:nowrap}
+.qtiles{grid-template-columns:repeat(3,1fr)!important;gap:10px!important}
+.qic{width:46px!important;height:46px!important}
+.qname{font-size:13px!important}
+.qgrp{font-size:13px;font-weight:800;color:var(--ink);margin:12px 2px 6px}
+.qdue{display:inline-block;margin-left:8px;font-size:12px;font-weight:800;background:#fff3e0;color:#b25b00;border:1px solid #ffd9a8;border-radius:999px;padding:2px 8px;vertical-align:middle}
+.qdue.now{background:#e5322d;color:#fff;border-color:#e5322d}
+.qrow .qtxt{flex:1}

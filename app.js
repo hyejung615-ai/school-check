@@ -90,18 +90,32 @@
   function renderSummary() {
     renderWho();
     if (data.links && data.links.length) {
-      const dk = ymd(today0()); const __wd = today0().getDay(); const doneMap = get('kid-linkdone', {}); const ds = doneMap[dk] || [];
-      const tiles = data.links.filter((l) => !l.notile).map((l) => `<a class="qtile" href="${esc(l.url)}" target="_blank" rel="noopener" style="--tc:${esc(l.color || '#2f5d8a')}"><span class="qic${(l.icon || '').length > 2 ? ' txt' : ''}">${esc(l.icon || '🔗')}</span><span class="qname">${esc(l.short || l.title)}</span></a>`).join('');
-      const rowF = (l) => `<button class="qrow ${ds.includes(l.id) ? 'done' : ''}" data-qcheck="${esc(l.id)}"><span class="qbox">${ds.includes(l.id) ? '✓' : ''}</span><span class="qtxt">${esc(l.title)}</span>${linkWho(dk, l.id) ? '<span class="qwho">✓ ' + esc(linkWho(dk, l.id)) + '</span>' : ''}</button>`;
-      const wd = today0().getDay(), cl = data.links.filter((l) => !l.nocheck && (!l.days || l.days.includes(wd))), isD = (l) => ds.includes(l.id);
-      const rows = cl.filter((l) => !isD(l)).map(rowF).join('') + (cl.some(isD) ? '<details class="donegrp"><summary>✓ 완료 ' + cl.filter(isD).length + '개 (눌러서 펼치기)</summary>' + cl.filter(isD).map(rowF).join('') + '</details>' : '');
+      const T = today0(), tk = ymd(T), wd = T.getDay(), WDN = '일월화수목금토', doneMap = get('kid-linkdone', {});
+      const nowH = new Date().getHours() + new Date().getMinutes() / 60;
+      const nextDay = (l) => { for (let k = (l.cutoff && nowH >= l.cutoff) ? 1 : 0; k < 9; k++) { const d = new Date(T); d.setDate(d.getDate() + k); if (l.dueDays.includes(d.getDay())) return d; } return T; };
+      const keyOf = (l) => (l.dueDays ? ymd(nextDay(l)) : tk);
+      const calL = data.links.find((l) => l.id === 'gcal');
+      const banner = `<a class="todaybar" href="${esc(calL ? calL.url : '#')}" target="_blank" rel="noopener"><span class="tb-cal">📅</span><span class="tb-txt"><small>오늘은</small><b>${T.getMonth() + 1}월 ${T.getDate()}일 ${WDN[wd]}요일</b></span><span class="tb-go">캘린더 ›</span></a>`;
+      const tiles = data.links.filter((l) => !l.notile && l.id !== 'gcal').map((l) => `<a class="qtile" href="${esc(l.url)}" target="_blank" rel="noopener" style="--tc:${esc(l.color || '#2f5d8a')}"><span class="qic${(l.icon || '').length > 2 ? ' txt' : ''}">${esc(l.icon || '🔗')}</span><span class="qname">${esc(l.short || l.title)}</span></a>`).join('');
+      const rowF = (l) => {
+        const k = keyOf(l), done = (doneMap[k] || []).includes(l.id); let tag = '';
+        if (l.dueDays) { const d = new Date(k + 'T00:00:00'), df = Math.round((d - T) / 86400000); const lab = df === 0 ? '오늘' : df === 1 ? '내일' : (d.getMonth() + 1) + '/' + d.getDate() + '(' + WDN[d.getDay()] + ')'; tag = `<span class="qdue${df === 0 ? ' now' : ''}">${esc(l.dueLabel || '마감')} ${lab}${l.dueTime ? ' ' + esc(l.dueTime) : ''}</span>`; }
+        const who = linkWho(k, l.id);
+        return `<button class="qrow ${done ? 'done' : ''}" data-qcheck="${esc(l.id)}" data-qk="${k}"><span class="qbox">${done ? '✓' : ''}</span><span class="qtxt">${esc(l.title)}${tag}</span>${who ? '<span class="qwho">✓ ' + esc(who) + '</span>' : ''}</button>`;
+      };
+      const isLD = (l) => (doneMap[keyOf(l)] || []).includes(l.id);
+      const cl = data.links.filter((l) => !l.nocheck && (!l.days || l.days.includes(wd))).sort((a, b) => (a.ord || 0) - (b.ord || 0));
+      const GRP = [['class', '🏫 학교 숙제 (우리 반)'], ['eng', '🔤 영어반 숙제'], ['academy', '📚 학원 숙제']];
+      let rows = '';
+      for (const [g, gt] of GRP) { const un = cl.filter((l) => l.grp === g && !isLD(l)); if (un.length) rows += '<div class="qgrp">' + gt + '</div>' + un.map(rowF).join(''); }
+      const dn = cl.filter(isLD); if (dn.length) rows += '<details class="donegrp"><summary>✓ 완료 ' + dn.length + '개 (눌러서 펼치기)</summary>' + dn.map(rowF).join('') + '</details>';
       let vh = ''; const V = data.vocab;
       if (V && V.words && V.words.length) {
-        const n = Math.floor((today0() - new Date(V.start + 'T00:00:00')) / 86400000), di = ((n % 7) + 7) % 7, pick = (k) => { const o = []; for (let q = 0; q < 3; q++) o.push(V.words[(k * 3 + q) % V.words.length]); return o; };
-        const wrow = (w) => `<div class="vw"><button class="vsay" data-say="${esc(w.en)}" aria-label="듣기">🔊</button><div class="vtxt"><b>${esc(w.en)}</b><span class="vipa">${esc(w.ipa || "")}</span><span class="vko">${esc(w.ko)}</span><span class="vmean">${esc(w.mean)}</span></div></div>`;
-        vh = '<div class="qtitle">🔤 오늘의 단어 3개 · ' + (di + 1) + '/7일째 (영어 · 발음 · 뜻)</div><div class="vcard">' + pick(di).map(wrow).join('') + '</div>' + (di > 0 ? '<details class="vprev"><summary>어제 단어 다시 보기</summary>' + pick(di - 1).map(wrow).join('') + '</details>' : '');
+        const n = Math.floor((T - new Date(V.start + 'T00:00:00')) / 86400000), di = ((n % 7) + 7) % 7, pick = (k) => { const o = []; for (let q = 0; q < 3; q++) o.push(V.words[(k * 3 + q) % V.words.length]); return o; };
+        const wrow = (w) => `<div class="vw"><button class="vsay" data-say="${esc(w.en)}" aria-label="듣기">🔊</button><div class="vtxt"><b>${esc(w.en)}</b><span class="vipa">${esc(w.ipa || '')}</span><span class="vko">${esc(w.ko)}</span><span class="vmean">${esc(w.mean)}</span></div></div>`;
+        vh = '<div class="qtitle">🔤 오늘의 단어 3개 · 학교 영어 단어 · ' + (di + 1) + '/7일째</div><div class="vcard">' + pick(di).map(wrow).join('') + '</div>' + (di > 0 ? '<details class="vprev"><summary>어제 단어 다시 보기</summary>' + pick(di - 1).map(wrow).join('') + '</details>' : '');
       }
-      $('#summary').innerHTML = '<div class="qtitle">바로가기</div><div class="qtiles">' + tiles + '</div>' + vh + '<div class="qtitle">오늘 했어요? 눌러서 체크</div><div class="qchecks">' + rows + '</div>';
+      $('#summary').innerHTML = banner + '<div class="qtitle">바로가기</div><div class="qtiles">' + tiles + '</div>' + vh + '<div class="qtitle">오늘 했어요? 눌러서 체크</div><div class="qchecks">' + rows + '</div>';
       return;
     }
     const items = allItems();
@@ -114,7 +128,7 @@
 
   $('#summary').addEventListener('click', (e) => {
     const b = e.target.closest('[data-qcheck]'); if (!b) return;
-    const id = b.dataset.qcheck, dk = ymd(today0()), doneMap = get('kid-linkdone', {});
+    const id = b.dataset.qcheck, dk = b.dataset.qk || ymd(today0()), doneMap = get('kid-linkdone', {});
     const ds = new Set(doneMap[dk] || []); if (ds.has(id)) ds.delete(id); else ds.add(id);
     doneMap[dk] = [...ds]; set('kid-linkdone', doneMap); recordChange('L_' + dk.replace(/-/g, '') + '_' + sk(id), ds.has(id)); render();
   });
@@ -306,7 +320,7 @@
       setSyncState(true);
     } catch { setSyncState(false); }
   }
-  function renderWho() {
+  function renderWho() { return;
     let bar = document.getElementById('whoBar');
     if (!bar) {
       const s = document.getElementById('summary'); if (!s) return;
