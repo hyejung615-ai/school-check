@@ -143,6 +143,8 @@
     const items = allItems().sort(sortItems);
     let html = '';
     if (tab === 'today') {
+      html = kidWeekHTML(items);
+    } else if (tab === '__none__') {
       const prepAll = items.filter(prepNow);
       const near = items.filter((i) => { const d = diff(i.due); return d !== null && d <= 1 && !prepNow(i); });
       const week = items.filter((i) => { const d = diff(i.due); return d !== null && d >= 2 && d <= 7 && !prepNow(i); });
@@ -343,6 +345,42 @@
     if (++__tick % 4 === 0) pullRemote();
   }, 5000);
   document.addEventListener('visibilitychange', () => { if (!document.hidden && syncCfg()) pullRemote(); });
+
+  // ---------- 이번 주 일정 (윤서 앱) ----------
+  function kidWeekHTML(items) {
+    const T = today0(), wd = T.getDay(), WD = '일월화수목금토', today = ymd(T);
+    const mon = new Date(T); mon.setDate(mon.getDate() + (wd === 0 ? 1 : wd === 6 ? 2 : 1 - wd));
+    const days = []; for (let k = 0; k < 7; k++) { const d = new Date(mon); d.setDate(d.getDate() + k); days.push(d); }
+    const start = ymd(days[0]), end = ymd(days[6]);
+    const lim = new Date(T); lim.setDate(lim.getDate() - 7); const limS = ymd(lim);
+    const all = items.slice().sort(sortItems);
+    const inWeek = (i) => i.due && i.due >= start && i.due <= end;
+    const pinned = all.filter((i) => i.week && inWeek(i) && !isDone(i.id));
+    const prepAll = all.filter((i) => prepNow(i) && !isDone(i.id));
+    const used = new Set([...pinned, ...prepAll].map((i) => i.id));
+    const late = all.filter((i) => i.kind === 'task' && !isDone(i.id) && i.due && i.due < today && i.due >= limS && !used.has(i.id));
+    late.forEach((i) => used.add(i.id));
+    const wrap = (cls, title, list) => '<div class="wday ' + cls + '"><h3>' + title + '</h3>' + list.map(itemHTML).join('') + '</div>';
+    let h = '';
+    if (late.length) h += wrap('late', '⚠️ 지난 날 못 한 것', late);
+    if (pinned.length) h += wrap('pin', '📌 이번 주 안에 끝내기', pinned);
+    const hasToday = days.some((d) => ymd(d) === today);
+    if (!hasToday && prepAll.length) h += wrap('', prepTitle(), prepAll);
+    for (const d of days) {
+      const ds = ymd(d); if (ds < today) continue;
+      const isT = ds === today, school = d.getDay() >= 1 && d.getDay() <= 5;
+      const list = all.filter((i) => i.due === ds && !isDone(i.id) && !used.has(i.id));
+      let inner = '';
+      if (isT && prepAll.length) inner += '<div class="wprep">' + prepTitle() + '</div>' + prepAll.map(itemHTML).join('');
+      inner += list.map(itemHTML).join('');
+      if (!inner && school) inner = '<div class="wempty">아직 올라온 알림장이 없어요</div>';
+      if (!inner) continue;
+      h += '<div class="wday' + (isT ? ' today' : '') + '"><h3>' + (isT ? '오늘 · ' : '') + WD[d.getDay()] + ' ' + (d.getMonth() + 1) + '/' + d.getDate() + '</h3>' + inner + '</div>';
+    }
+    const dn = all.filter((i) => isDone(i.id) && i.due && i.due >= limS && i.due <= end);
+    if (dn.length) h += '<details class="group donegrp"><summary>✓ 완료 ' + dn.length + '개 (눌러서 펼치기)</summary>' + dn.map(itemHTML).join('') + '</details>';
+    return h || '<div class="empty">이번 주 할 일이 없어요 🎉</div>';
+  }
 
   function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('on'); setTimeout(() => t.classList.remove('on'), 2000); }
 
