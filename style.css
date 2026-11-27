@@ -173,3 +173,13 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 .wday.late h3{color:#e5322d}
 .wprep{font-size:13px;font-weight:800;color:#b25b00;margin:2px 4px 6px}
 .wempty{font-size:13px;color:var(--muted);padding:6px 6px 10px}
+
+/* 단어 외우기 */
+.vw{align-items:center}
+.vbtns{display:flex;flex-direction:column;gap:6px;margin-left:auto;flex-shrink:0}
+.vbtns button{border:0;border-radius:12px;padding:9px 12px;font-size:14px;font-weight:800;font-family:inherit}
+.vok{background:#2e9e5b;color:#fff}
+.vno{background:#fff1e0;color:#b25b00}
+.vdone{opacity:.75}
+.vhint{font-size:12.5px;color:var(--muted);margin:6px 4px 0}
+.vall{text-align:center;font-weight:800;padding:18px}

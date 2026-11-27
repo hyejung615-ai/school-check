@@ -107,16 +107,22 @@
       };
       const isLD = (l) => (doneMap[keyOf(l)] || []).includes(l.id);
       const cl = data.links.filter((l) => !l.nocheck && (!l.days || l.days.includes(wd)) && (l.maxDf === undefined || dfOf(l) <= l.maxDf) && (!l.until || keyOf(l) <= l.until)).sort((a, b) => (a.ord || 0) - (b.ord || 0));
-      const GRP = [['class', '🏫 학교 숙제 (우리 반)'], ['eng', '🔤 영어반 숙제'], ['academy', '📚 학원 숙제']];
+      const GRP = [['class', '🏫 학교 숙제 (우리 반)'], ['eng', '🔤 영어반 숙제'], ['home', '🏠 집에서 할 것'], ['academy', '📚 학원 숙제']];
       let rows = '';
       for (const [g, gt] of GRP) { const un = cl.filter((l) => l.grp === g && !isLD(l)); if (un.length) rows += '<div class="qgrp">' + gt + '</div>' + un.map(rowF).join(''); }
       const dn = cl.filter(isLD); if (dn.length) rows += '<details class="donegrp"><summary>✓ 완료 ' + dn.length + '개 (눌러서 펼치기)</summary>' + dn.map(rowF).join('') + '</details>';
       let vh = ''; const V = data.vocab;
       if (V && V.words && V.words.length) {
-        const n = Math.floor((T - new Date(V.start + 'T00:00:00')) / 86400000), di = ((n % 7) + 7) % 7, pick = (k) => { const o = []; for (let q = 0; q < 3; q++) o.push(V.words[(k * 3 + q) % V.words.length]); return o; };
-        const wrow = (w) => `<div class="vw"><button class="vsay" data-say="${esc(w.en)}" aria-label="듣기">🔊</button><div class="vtxt"><b>${esc(w.en)}</b><span class="vipa">${esc(w.ipa || '')}</span><span class="vko">${esc(w.ko)}</span><span class="vmean">${esc(w.mean)}</span></div></div>`;
-        vh = '<div class="qtitle">🔤 오늘의 단어 3개 · 학교 영어 단어 · ' + (di + 1) + '/7일째</div><div class="vcard">' + pick(di).map(wrow).join('') + '</div>' + (di > 0 ? '<details class="vprev"><summary>어제 단어 다시 보기</summary>' + pick(di - 1).map(wrow).join('') + '</details>' : '');
+        const d8 = String(V.start).replace(/-/g, ''), mm = metaMap(), mkm = (p, w) => mm[p + '_' + d8 + '_' + sk(w.en)];
+        const st = V.words.map((w, i) => { const m = mkm('V', w), s2 = mkm('S', w); return { w, i, done: !!(m && m.d), skip: s2 ? s2.t : 0 }; });
+        const left = st.filter((x) => !x.done).sort((a, b) => a.skip - b.skip || a.i - b.i), dn2 = st.filter((x) => x.done);
+        const wtxt = (w) => `<button class="vsay" data-say="${esc(w.en)}" aria-label="듣기">🔊</button><div class="vtxt"><b>${esc(w.en)}</b><span class="vipa">${esc(w.ipa || '')}</span><span class="vko">${esc(w.ko)}</span><span class="vmean">${esc(w.mean)}</span></div>`;
+        const wrow = (x) => `<div class="vw">${wtxt(x.w)}<div class="vbtns"><button class="vok" data-vk="V" data-vv="1" data-vw="${esc(x.w.en)}">외웠어요 ✓</button><button class="vno" data-vk="S" data-vv="1" data-vw="${esc(x.w.en)}">아직 →</button></div></div>`;
+        const drow = (x) => `<div class="vw vdone">${wtxt(x.w)}<div class="vbtns"><button class="vno" data-vk="V" data-vv="0" data-vw="${esc(x.w.en)}">취소</button></div></div>`;
+        const head = '<div class="qtitle">🔤 영어 단어 외우기 · 이번 주 ' + st.length + '개 중 남은 ' + left.length + '개</div>';
+        vh = head + (left.length ? '<div class="vcard">' + left.slice(0, 3).map(wrow).join('') + '</div><div class="vhint">외웠으면 <b>외웠어요 ✓</b>, 아직이면 <b>아직 →</b> 를 눌러요. 아직인 단어는 뒤로 가서 다시 나와요.</div>' : '<div class="vcard vall">🎉 이번 주 단어를 다 외웠어요! 잘했어요</div>') + (dn2.length ? '<details class="vprev"><summary>✓ 외운 단어 ' + dn2.length + '개 (눌러서 보기)</summary>' + dn2.map(drow).join('') + '</details>' : '');
       }
+
       $('#summary').innerHTML = banner + '<div class="qtitle">바로가기</div><div class="qtiles">' + tiles + '</div>' + vh + '<div class="qtitle">오늘 했어요? 눌러서 체크</div><div class="qchecks">' + rows + '</div>';
       return;
     }
@@ -137,6 +143,12 @@
 
   $('#summary').addEventListener('click', (e) => { const sb = e.target.closest('[data-say]'); if (!sb || !window.speechSynthesis) return; const u = new SpeechSynthesisUtterance(sb.dataset.say); u.lang = 'en-US'; u.rate = 0.85; speechSynthesis.cancel(); speechSynthesis.speak(u); });
 
+
+  $('#summary').addEventListener('click', (e) => {
+    const vb = e.target.closest('[data-vk]'); if (!vb || !data.vocab) return;
+    const key = vb.dataset.vk + '_' + String(data.vocab.start).replace(/-/g, '') + '_' + sk(vb.dataset.vw);
+    recordChange(key, vb.dataset.vv === '1'); render();
+  });
   function render() {
     renderSummary();
     document.querySelectorAll('#tabs button').forEach((b) => b.classList.toggle('on', b.dataset.tab === tab));
@@ -298,6 +310,7 @@
     try { const r = await fetch(c.url + '/kid/' + c.key + '/' + key + '.json', { method: 'PUT', body: JSON.stringify(v) }); setSyncState(r.ok); } catch { setSyncState(false); }
   }
   function applyMeta(k, v, checks, ld) {
+    if (k.startsWith('V_') || k.startsWith('S_')) return;
     if (k.startsWith('L_')) {
       const parts = k.split('_'); const d8 = parts[1]; const id = parts.slice(2).join('_');
       const dk = d8.slice(0, 4) + '-' + d8.slice(4, 6) + '-' + d8.slice(6, 8);
