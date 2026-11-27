@@ -97,7 +97,7 @@
       const dfOf = (l) => Math.round((new Date(keyOf(l) + 'T00:00:00') - T) / 86400000);
       const calL = data.links.find((l) => l.id === 'gcal');
       const banner = `<a class="todaybar" href="${esc(calL ? calL.url : '#')}" target="_blank" rel="noopener"><span class="tb-cal">📅</span><span class="tb-txt"><small>오늘은</small><b>${T.getMonth() + 1}월 ${T.getDate()}일 ${WDN[wd]}요일</b></span><span class="tb-go">캘린더 ›</span></a>`;
-      const tiles = data.links.filter((l) => !l.notile && l.id !== 'gcal').map((l) => `<a class="qtile" href="${esc(l.url)}" target="_blank" rel="noopener" style="--tc:${esc(l.color || '#2f5d8a')}"><span class="qic${(l.icon || '').length > 2 ? ' txt' : ''}">${esc(l.icon || '🔗')}</span><span class="qname">${esc(l.short || l.title)}</span></a>`).join('');
+      const tiles = data.links.filter((l) => !l.notile && l.id !== 'gcal' && (!l.until || tk <= l.until)).map((l) => `<a class="qtile" href="${esc(l.url)}" target="_blank" rel="noopener" style="--tc:${esc(l.color || '#2f5d8a')}"><span class="qic${(l.icon || '').length > 2 ? ' txt' : ''}">${esc(l.icon || '🔗')}</span><span class="qname">${esc(l.short || l.title)}</span></a>`).join('');
       const rowF = (l) => {
         const k = keyOf(l), done = (doneMap[k] || []).includes(l.id); let tag = '';
         if (l.dueDays) { const d = new Date(k + 'T00:00:00'), df = Math.round((d - T) / 86400000); const lab = df === 0 ? '오늘' : df === 1 ? '내일' : (d.getMonth() + 1) + '/' + d.getDate() + '(' + WDN[d.getDay()] + ')'; tag = `<span class="qdue${df === 0 ? ' now' : ''}">${esc(l.dueLabel || '마감')} ${lab}${l.dueTime ? ' ' + esc(l.dueTime) : ''}</span>`; }
@@ -106,7 +106,7 @@
         return `<button class="qrow ${done ? 'done' : ''}" data-qcheck="${esc(l.id)}" data-qk="${k}"><span class="qbox">${done ? '✓' : ''}</span><span class="qtxt">${esc(l.title)}${tag}</span>${who ? '<span class="qwho">✓ ' + esc(who) + '</span>' : ''}</button>`;
       };
       const isLD = (l) => (doneMap[keyOf(l)] || []).includes(l.id);
-      const cl = data.links.filter((l) => !l.nocheck && (!l.days || l.days.includes(wd)) && (l.maxDf === undefined || dfOf(l) <= l.maxDf)).sort((a, b) => (a.ord || 0) - (b.ord || 0));
+      const cl = data.links.filter((l) => !l.nocheck && (!l.days || l.days.includes(wd)) && (l.maxDf === undefined || dfOf(l) <= l.maxDf) && (!l.until || keyOf(l) <= l.until)).sort((a, b) => (a.ord || 0) - (b.ord || 0));
       const GRP = [['class', '🏫 학교 숙제 (우리 반)'], ['eng', '🔤 영어반 숙제'], ['academy', '📚 학원 숙제']];
       let rows = '';
       for (const [g, gt] of GRP) { const un = cl.filter((l) => l.grp === g && !isLD(l)); if (un.length) rows += '<div class="qgrp">' + gt + '</div>' + un.map(rowF).join(''); }
